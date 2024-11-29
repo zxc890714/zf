@@ -1,0 +1,37 @@
+class MessageHandler {
+private:
+    struct MessageQueue {
+        std::queue<Data> dataQueue;
+        std::mutex mutex;
+    };
+    
+    std::unordered_map<int, std::unique_ptr<MessageQueue>> messageQueues_;
+
+public:
+    void onMessage(const Message& msg) {
+        auto& msgQueue = messageQueues_[msg.type];
+        if (!msgQueue) {
+            msgQueue = std::make_unique<MessageQueue>();
+        }
+        
+        std::lock_guard<std::mutex> lock(msgQueue->mutex);
+        msgQueue->dataQueue.push(msg.data);
+    }
+
+    std::vector<Data> getData(int type) {
+        auto it = messageQueues_.find(type);
+        if (it == messageQueues_.end()) {
+            return {};
+        }
+        
+        std::vector<Data> result;
+        std::lock_guard<std::mutex> lock(it->second->mutex);
+        
+        while (!it->second->dataQueue.empty()) {
+            result.push_back(std::move(it->second->dataQueue.front()));
+            it->second->dataQueue.pop();
+        }
+        
+        return result;
+    }
+};
