@@ -1,0 +1,63 @@
+const Node* findNode(const std::vector<Node>& nodes, const std::string& name) {
+    for (const auto& n : nodes) {
+        if (n.name == name) return &n;
+    }
+    return nullptr;
+}
+
+// 判断两条横平竖直线段是否严格相交（不含端点重合）
+bool isCross(const Node& a1, const Node& a2, const Node& b1, const Node& b2) {
+    // 横线和竖线
+    if (a1.x == a2.x && b1.y == b2.y) { // a垂直，b水平
+        // a1.x是否在b1.x~b2.x，b1.y是否在a1.y~a2.y
+        int minBx = std::min(b1.x, b2.x), maxBx = std::max(b1.x, b2.x);
+        int minAy = std::min(a1.y, a2.y), maxAy = std::max(a1.y, a2.y);
+        if (a1.x > minBx && a1.x < maxBx && b1.y > minAy && b1.y < maxAy)
+            return true;
+    }
+    if (a1.y == a2.y && b1.x == b2.x) { // a水平，b垂直
+        // b1.x是否在a1.x~a2.x，a1.y是否在b1.y~b2.y
+        int minAx = std::min(a1.x, a2.x), maxAx = std::max(a1.x, a2.x);
+        int minBy = std::min(b1.y, b2.y), maxBy = std::max(b1.y, b2.y);
+        if (b1.x > minAx && b1.x < maxAx && a1.y > minBy && a1.y < maxBy)
+            return true;
+    }
+    // 同方向不可能相交
+    return false;
+}
+
+void checkNetwork(const std::vector<Node>& nodes) {
+    // 先整理所有路段
+    struct Edge {
+        const Node *from, *to;
+    };
+    std::vector<Edge> edges;
+    for (const auto& n : nodes) {
+        for (const auto& r : n.roads) {
+            const Node* toNode = findNode(nodes, r.to);
+            if (toNode) {
+                edges.push_back({&n, toNode});
+            }
+        }
+    }
+
+    // 检查所有边对
+    for (size_t i = 0; i < edges.size(); ++i) {
+        const auto& e1 = edges[i];
+        for (size_t j = i + 1; j < edges.size(); ++j) {
+            const auto& e2 = edges[j];
+            // 排除共点（只检测相交不含端点）
+            if (e1.from == e2.from || e1.from == e2.to ||
+                e1.to == e2.from || e1.to == e2.to)
+                continue;
+
+            if (isCross(*e1.from, *e1.to, *e2.from, *e2.to)) {
+                std::cout << "冲突路段: "
+                          << e1.from->name << "-" << e1.to->name
+                          << " 与 "
+                          << e2.from->name << "-" << e2.to->name
+                          << " 相交!\n";
+            }
+        }
+    }
+}
